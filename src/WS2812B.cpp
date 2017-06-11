@@ -1,35 +1,26 @@
-/*-------------------------------------------------------------------------
-  Arduino library to control a wide variety of WS2811- and WS2812-based RGB
-  LED devices such as Adafruit FLORA RGB Smart Pixels and NeoPixel strips.
-  Currently handles 400 and 800 KHz bitstreams on 8, 12 and 16 MHz ATmega
-  MCUs, with LEDs wired for various color orders.  Handles most output pins
-  (possible exception with upper PORT registers on the Arduino Mega).
-
-  Written by Phil Burgess / Paint Your Dragon for Adafruit Industries,
-  contributions by PJRC, Michael Miller and other members of the open
-  source community.
-
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing products
-  from Adafruit!
-
-  -------------------------------------------------------------------------
-  This file is part of the Adafruit NeoPixel library.
-
-  NeoPixel is free software: you can redistribute it and/or modify
+/*-----------------------------------------------------------------------------------------------
+  Arduino library to control WS2812B RGB Led strips using the Arduino STM32 LibMaple core
+  -----------------------------------------------------------------------------------------------
+ 
+  Note. 
+  This library has only been tested on the WS2812B LED. It may not work with the older WS2812 or
+  other types of addressable RGB LED, becuase it relies on a division multiple of the 72Mhz clock 
+  frequence on the STM32 SPI to generate the correct width T0H pulse, of 400ns +/- 150nS
+  SPI DIV32 gives a pulse width of 444nS which is well within spec for the WS2812B but
+  is probably too long for the WS2812 which needs a 350ns pulse for T0H
+ 
+  This WS2811B library is free software: you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as
   published by the Free Software Foundation, either version 3 of
   the License, or (at your option) any later version.
 
-  NeoPixel is distributed in the hope that it will be useful,
+  It is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU Lesser General Public
-  License along with NeoPixel.  If not, see
-  <http://www.gnu.org/licenses/>.
-  -------------------------------------------------------------------------*/
+  See   <http://www.gnu.org/licenses/>.
+  -----------------------------------------------------------------------------------------------*/
 
 #include "WS2812B.h"
 #include "pins_arduino.h"
@@ -37,9 +28,9 @@
 #include <SPI.h>
 
 
-// Constructor when length, pin and type are known at compile-time:
+// Constructor when n is the number of LEDs in the strip
 WS2812B::WS2812B(uint16_t n) :
-  begun(false), brightness(0), pixels(NULL), endTime(0)  
+  brightness(0), pixels(NULL)
 {
   updateLength(n);
 }
@@ -63,15 +54,17 @@ void WS2812B::begin(void) {
 void WS2812B::updateLength(uint16_t n) {
   if(pixels) 
   {
-	  free(pixels); // Free existing data (if any)
+	  free(pixels); 
   }
-  // Allocate new data -- note: ALL PIXELS ARE CLEARED
-  numBytes = (n<<3) + n + 2; 
+
+  numBytes = (n<<3) + n + 2; // 9 encoded bytes per pixel. 1 byte empty peamble to fix issue with SPI MOSI and on byte at the end to clear down MOSI 
+							// Note. (n<<3) +n is a fast way of doing n*9
   if((pixels = (uint8_t *)malloc(numBytes)))
   {
-    memset(pixels, 0, numBytes);
+	*pixels=0;//clear the preamble byte
+	*(pixels+numBytes-1)=0;// clear the post send cleardown byte.
     numLEDs = n;
-	clear();
+	clear();// Set the encoded data to all encoded zeros 
   } 
   else 
   {
@@ -79,13 +72,16 @@ void WS2812B::updateLength(uint16_t n) {
   }
 }
 
-
+// Sends the current buffer to the leds
 void WS2812B::show(void) 
 {
   SPI.dmaSend(pixels,numBytes);
 }
 
-
+/*Sets a specific pixel to a specific r,g,b colour 
+* Because the pixels buffer contains the encoded bitstream, which is in triplets
+* the lookup tables need to be used to find the correct pattern for each byte in the 3 byte sequence.
+*/
 void WS2812B::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b)
  {
    uint8_t *bptr = pixels + (n<<3) + n +1;
@@ -109,7 +105,6 @@ void WS2812B::setPixelColor(uint16_t n, uint32_t c)
    
     if(brightness) 
 	{ 
-		// See notes in setBrightness()
       r = ((int)((uint8_t)(c >> 16)) * (int)brightness) >> 8;
       g = ((int)((uint8_t)(c >>  8)) * (int)brightness) >> 8;
       b = ((int)((uint8_t)c) * (int)brightness) >> 8;
@@ -169,7 +164,8 @@ void WS2812B::setBrightness(uint8_t b) {
     if(oldBrightness == 0) scale = 0; // Avoid /0
     else if(b == 255) scale = 65535 / oldBrightness;
     else scale = (((uint16_t)newBrightness << 8) - 1) / oldBrightness;
-    for(uint16_t i=0; i<numBytes; i++) {
+    for(uint16_t i=0; i<numBytes; i++) 
+	{
       c      = *ptr;
       *ptr++ = (c * scale) >> 8;
     }
@@ -182,10 +178,12 @@ uint8_t WS2812B::getBrightness(void) const {
   return brightness - 1;
 }
 
-
+/*
+*	Sets the encoded pixel data to turn all the LEDs off.
+*/
 void WS2812B::clear() 
 {
-	uint8_t * bptr= pixels+1;
+	uint8_t * bptr= pixels+1;// Note first byte in the buffer is a preable and is always zero. hence the +1
 	for(int i=0;i< (numLEDs *3);i++)
 	{
 		*bptr++ = byte0Lookup[0];

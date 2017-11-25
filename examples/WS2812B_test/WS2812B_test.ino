@@ -156,7 +156,7 @@ void theaterChaseRainbow(uint8_t wait) {
 void pulseWhite(uint8_t wait) {
   for(int j = 0; j < 256 ; j++){
       for(uint16_t i=0; i<strip.numPixels(); i++) {
-          strip.setPixelColor(i, strip.Color(0,0,0, LEDGamma[j] ) );
+          strip.setPixelColor(i, strip.Color(LEDGamma[j],LEDGamma[j],LEDGamma[j] ) );
         }
         delay(wait);
         strip.show();
@@ -164,7 +164,7 @@ void pulseWhite(uint8_t wait) {
 
   for(int j = 255; j >= 0 ; j--){
       for(uint16_t i=0; i<strip.numPixels(); i++) {
-          strip.setPixelColor(i, strip.Color(0,0,0, LEDGamma[j] ) );
+          strip.setPixelColor(i, strip.Color(LEDGamma[j],LEDGamma[j],LEDGamma[j] ) );
         }
         delay(wait);
         strip.show();
@@ -220,24 +220,24 @@ void rainbowFade2White(uint8_t wait, int rainbowLoops, int whiteLoops) {
     for(int j = 0; j < 256 ; j++){
 
         for(uint16_t i=0; i < strip.numPixels(); i++) {
-            strip.setPixelColor(i, strip.Color(0,0,0, LEDGamma[j] ) );
+            strip.setPixelColor(i, strip.Color(LEDGamma[j],LEDGamma[j],LEDGamma[j] ) );
           }
           strip.show();
+          delay(wait);
         }
 
         delay(2000);
     for(int j = 255; j >= 0 ; j--){
 
         for(uint16_t i=0; i < strip.numPixels(); i++) {
-            strip.setPixelColor(i, strip.Color(0,0,0, LEDGamma[j] ) );
+            strip.setPixelColor(i, strip.Color(LEDGamma[j],LEDGamma[j],LEDGamma[j] ) );
           }
           strip.show();
+         delay(wait);
         }
   }
 
   delay(500);
-
-
 }
 
 void whiteOverRainbow(uint8_t wait, uint8_t whiteSpeed, uint8_t whiteLength ) {
@@ -257,7 +257,7 @@ void whiteOverRainbow(uint8_t wait, uint8_t whiteSpeed, uint8_t whiteLength ) {
     for(int j=0; j<256; j++) {
       for(uint16_t i=0; i<strip.numPixels(); i++) {
         if((i >= tail && i <= head) || (tail > head && i >= tail) || (tail > head && i <= head) ){
-          strip.setPixelColor(i, strip.Color(0,0,0, 255 ) );
+          strip.setPixelColor(i, strip.Color(255,255,255 ) );
         }
         else{
           strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
@@ -287,7 +287,7 @@ void whiteOverRainbow(uint8_t wait, uint8_t whiteSpeed, uint8_t whiteLength ) {
 void fullWhite() {
   
     for(uint16_t i=0; i<strip.numPixels(); i++) {
-        strip.setPixelColor(i, strip.Color(0,0,0, 255 ) );
+        strip.setPixelColor(i, strip.Color(255, 255, 255 ) );
     }
       strip.show();
 }

@@ -49,7 +49,7 @@ void WS2812B::begin(void) {
 
 if (!begun)
 {
-  SPI.setClockDivider(SPI_CLOCK_DIV32);// need bit rate of 400nS but closest we can do @ 72Mhz is 444ns (which is within spec)
+  SPI.setClockDivider(WS2812B_SPI_DIVISOR);
   SPI.begin();
   begun = true;
 }
